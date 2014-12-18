@@ -98,6 +98,7 @@ if __name__ == "__main__":
 
     count = 0
 
+    #学習
     while count < epochs:
 
         count += 1
