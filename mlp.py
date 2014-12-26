@@ -25,16 +25,10 @@ def mid_error(mid_v, wo_vs, eo_v, a):
     return np.dot(wo_vs.T, eo_v) * sigmoid_(mid_v, a)
 
 
-def mid_w_update(wm_vs, mid_v, wo_vs, em_v, x_v, r):
-    x_v = np.atleast_2d( x_v )
-    em_v = np.atleast_2d( em_v )
-    return wm_vs - r * np.dot(em_v.T, x_v)
-
-
-def out_w_update(wo_vs, eo_v, mid_v, r):
-    mid_v = np.atleast_2d( mid_v )
-    eo_v = np.atleast_2d( eo_v )
-    return wo_vs - r * np.dot( eo_v.T, mid_v )
+def w_update(w_vs, e_v, i_v, r) :
+    e_v = np.atleast_2d( e_v )
+    i_v = np.atleast_2d( i_v )
+    return w_vs - r * np.dot( e_v.T, i_v)
 
 
 def add_bius(x_vs) :
@@ -65,7 +59,7 @@ if __name__ == "__main__":
     a = 1
 
     # 中間層ノード数
-    mid_num = 2
+    mid_num = 5
     # 出力層ノード数
     out_num = 1
 
@@ -98,7 +92,6 @@ if __name__ == "__main__":
 
     count = 0
 
-    #学習
     while count < epochs:
 
         count += 1
@@ -121,10 +114,12 @@ if __name__ == "__main__":
 
             # weight update
             #中間層
-            wm_vs = mid_w_update(wm_vs, mid_v, wo_vs, em_v, x_vs[i], r)
-            #出力層
-            wo_vs = out_w_update(wo_vs, eo_v, mid_v, r)
+            wm_vs = w_update(wm_vs, em_v, x_vs[i], r)
 
+            #出力層
+            wo_vs = w_update(wo_vs, eo_v, mid_v, r)
+
+            #print(wo_vs)
 
     # 結果の出力
     for i in range(0, len(d_vs)):
