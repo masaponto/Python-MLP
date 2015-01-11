@@ -90,11 +90,7 @@ if __name__ == "__main__":
 
     #d_vs = np.array([ [0,0], [1,1], [1,1], [0,0] ])
 
-    count = 0
-
-    while count < epochs:
-
-        count += 1
+    for n in range(epochs):
 
         for i in range(len(d_vs)):
 
