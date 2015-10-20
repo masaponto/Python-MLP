@@ -65,13 +65,18 @@ class MLP(BaseEstimator):
     def fit(self, X, y):
         """学習"""
 
-        d_vs = y
         self.out_num = max(y)
+
+        if self.out_num == 1:
+            d_vs = y
+        else:
+            d_vs = np.array(list(map(self._ltov(self.out_num), y)))
 
         x_vs = self.add_bias(X)
         x_vd = len(x_vs[0])
 
         # 重み
+        np.random.seed()
         self.wm_vs = np.random.uniform(-1.0, 1.0, (self.mid_num, x_vd))
         self.wo_vs = np.random.uniform(-1.0, 1.0, (self.out_num, self.mid_num))
 
@@ -97,6 +102,27 @@ class MLP(BaseEstimator):
                 # 出力層
                 self.wo_vs = self.w_update(self.wo_vs, eo_v, mid_v)
 
+    def _ltov(self, n):
+        """trasform label scalar to vector
+
+            Args:
+            n (int) : number of class, number of out layer neuron
+            label (int) : label
+
+            Exmples:
+            >>> e = ELM(10, 3)
+            >>> e._ltov(3)(1)
+            [1, -1, -1]
+            >>> e._ltov(3)(2)
+            [-1, 1, -1]
+            >>> e._ltov(3)(3)
+            [-1, -1, 1]
+
+            """
+        def inltov(label):
+            return [-1 if i != label else 1 for i in range(1, n + 1)]
+        return inltov
+
     def __vtol(self, vec):
         """tranceform vector (list) to label
 
@@ -108,7 +134,7 @@ class MLP(BaseEstimator):
 
         """
 
-        fix_num = lambda x : 1 if 1 == round(x,0) else -1
+        fix_num = lambda x: 1 if 1 == round(x, 0) else -1
 
         if self.out_num == 1:
             return fix_num(vec[0])
@@ -120,13 +146,12 @@ class MLP(BaseEstimator):
                 return 0
             return int(v.index(1)) + 1
 
-
     def predict(self, x_vs):
         x_vs = self.add_bias(x_vs)
         mid_vs = [self.calc_out(self.wm_vs, x_v) for x_v in x_vs]
-        out_vs = [ self.__vtol( self.calc_out( self.wo_vs, mid_v) ) for mid_v in mid_vs]
+        out_vs = [self.__vtol(self.calc_out(self.wo_vs, mid_v))
+                  for mid_v in mid_vs]
         return np.array(out_vs)
-
 
     def one_predict(self, x_v):
         x_v = np.append(x_v, 1)
@@ -134,10 +159,10 @@ class MLP(BaseEstimator):
         print(x_v)
 
         mid_v = self.calc_out(self.wm_vs, x_v)
-        out_v = self.calc_out( self.wo_vs, mid_v)
+        out_v = self.calc_out(self.wo_vs, mid_v)
         print(out_v)
 
-        return 1 if self.__vtol(out_v)  == 1 else -1
+        return self.__vtol(out_v)
 
 
 if __name__ == "__main__":
@@ -149,11 +174,11 @@ if __name__ == "__main__":
 
     #data_set = fetch_mldata(db_name)
     #data_set.data = preprocessing.scale(data_set.data)
-
+    #
     #X_train, X_test, y_train, y_test = cross_validation.train_test_split(
     #    data_set.data, data_set.target, test_size=0.4, random_state=0)
-
-    #mlp = MLP(10,100)
+    #
+    #mlp = MLP(5, 1000)
     #mlp.fit(X_train, y_train)
 
     #print(y_test[0])
@@ -161,9 +186,7 @@ if __name__ == "__main__":
     #print(mlp.one_predict(X_test[0]))
     #print(y_test == mlp.predict(X_test))
 
-    #print(sum(y_test == mlp.predict(X_test)) / len(y_test) )
-
-
+    #print(sum(y_test == mlp.predict(X_test)) / len(y_test))
 
 
     for db_name in db_names:
@@ -175,12 +198,12 @@ if __name__ == "__main__":
         print('MLP')
         for hid_num in hid_nums:
             print(str(hid_num), end=' ')
-            mlp = MLP(10,100)
+            mlp = MLP(5,1000)
             ave = 0
 
-            for i in range(3):
+            for i in range(10):
                 scores = cross_validation.cross_val_score(
-                    mlp, data_set.data, data_set.target, cv=5, scoring='accuracy')
+                    mlp, data_set.data, data_set.target, cv=5, scoring='accuracy', n_jobs=-1)
                 ave += scores.mean()
-            ave /= 3
+            ave /= 10
             print("Accuracy: %0.2f " % (ave))
