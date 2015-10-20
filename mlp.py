@@ -11,14 +11,20 @@ from sklearn.datasets import load_svmlight_file
 
 
 class MLP(BaseEstimator):
+    """
+    Multi Layer Perceptron (Sngle hidden layer)
+
+    """
+
+
 
     def __init__(self, mid_num, epochs, r=0.5, a=1):
         """mlp using sigmoid
-        mid_num: 中間層ノード数
-        out_num: 出力層ノード数
-        epochs: 学習回数
-        r: 学習率
-        a: シグモイド関数の定数
+        mid_num int : 中間層ノード数
+        out_num int : 出力層ノード数
+        epochs int: 学習回数
+        r float: 学習率
+        a int: シグモイド関数の定数
         """
         self.mid_num = mid_num
         self.epochs = epochs
@@ -29,22 +35,39 @@ class MLP(BaseEstimator):
         return 1 / (1 + np.exp(- self.a * x))
 
     def sigmoid_(self, x):
-        """シグモイド関数微分"""
+        """シグモイド関数微分
+        x float
+        """
         return self.a * x * (1.0 - x)
 
     def calc_out(self, w_vs, x_v):
+        """
+        w_vs [[float]]
+        x_v [float] : feature vector
+        """
+
         return self.sigmoid(np.dot(w_vs, x_v))
 
     def out_error(self, d_v, out_v):
-        """出力層の誤差"""
+        """出力層の誤差
+        d_v [float]
+        out_v [float]
+        """
         return (out_v - d_v) * self.sigmoid_(out_v)
 
     def mid_error(self, mid_v, eo_v):
-        """中間層の誤差"""
+        """中間層の誤差
+        mid_v  [float]
+        eo_v [float]
+        """
         return np.dot(self.wo_vs.T, eo_v) * self.sigmoid_(mid_v)
 
     def w_update(self, w_vs, e_v, i_v):
-        """重み更新"""
+        """重み更新
+        w_vs [[float]]
+        e_v [float]
+        i_v [float]
+        """
         e_v = np.atleast_2d(e_v)
         i_v = np.atleast_2d(i_v)
         return w_vs - self.r * np.dot(e_v.T, i_v)
@@ -63,7 +86,11 @@ class MLP(BaseEstimator):
         return np.c_[x_vs, np.ones(len(x_vs))]
 
     def fit(self, X, y):
-        """学習"""
+        """学習
+        X [[float]] array : featur vector
+        y [int] array : class labels
+
+        """
 
         self.out_num = max(y)
 
@@ -110,12 +137,12 @@ class MLP(BaseEstimator):
             label (int) : label
 
             Exmples:
-            >>> e = ELM(10, 3)
-            >>> e._ltov(3)(1)
+            >>> p = MLP(5, 100)
+            >>> p._ltov(3)(1)
             [1, -1, -1]
-            >>> e._ltov(3)(2)
+            >>> p._ltov(3)(2)
             [-1, 1, -1]
-            >>> e._ltov(3)(3)
+            >>> p._ltov(3)(3)
             [-1, -1, 1]
 
             """
@@ -131,6 +158,17 @@ class MLP(BaseEstimator):
 
         Returns:
         int : label of classify result
+        Exmples:
+        >>> p = MLP(3, 100)
+        >>> p.out_num = 3
+        >>> p._MLP__vtol([1, -1, -1])
+        1
+        >>> p._MLP__vtol([-1, 1, -1])
+        2
+        >>> p._MLP__vtol([-1, -1, 1])
+        3
+        >>> p._MLP__vtol([-1, -1, -1])
+        0
 
         """
 
@@ -147,6 +185,11 @@ class MLP(BaseEstimator):
             return int(v.index(1)) + 1
 
     def predict(self, x_vs):
+        """
+        x_vs [[float]] array
+
+        """
+
         x_vs = self.add_bias(x_vs)
         mid_vs = [self.calc_out(self.wm_vs, x_v) for x_v in x_vs]
         out_vs = [self.__vtol(self.calc_out(self.wo_vs, mid_v))
@@ -154,6 +197,11 @@ class MLP(BaseEstimator):
         return np.array(out_vs)
 
     def one_predict(self, x_v):
+        """
+        x_v [float] array
+
+        """
+
         x_v = np.append(x_v, 1)
 
         print(x_v)
@@ -166,28 +214,28 @@ class MLP(BaseEstimator):
 
 
 if __name__ == "__main__":
+    import doctest
+    doctest.testmod()
 
     #db_names = ['australian']
     db_names = ['iris']
-
     hid_nums = [10]
 
     #data_set = fetch_mldata(db_name)
     #data_set.data = preprocessing.scale(data_set.data)
     #
-    #X_train, X_test, y_train, y_test = cross_validation.train_test_split(
+    # X_train, X_test, y_train, y_test = cross_validation.train_test_split(
     #    data_set.data, data_set.target, test_size=0.4, random_state=0)
     #
     #mlp = MLP(5, 1000)
     #mlp.fit(X_train, y_train)
 
-    #print(y_test[0])
+    # print(y_test[0])
 
-    #print(mlp.one_predict(X_test[0]))
+    # print(mlp.one_predict(X_test[0]))
     #print(y_test == mlp.predict(X_test))
 
     #print(sum(y_test == mlp.predict(X_test)) / len(y_test))
-
 
     for db_name in db_names:
         print(db_name)
@@ -198,12 +246,12 @@ if __name__ == "__main__":
         print('MLP')
         for hid_num in hid_nums:
             print(str(hid_num), end=' ')
-            mlp = MLP(5,1000)
+            mlp = MLP(5, 100)
             ave = 0
 
-            for i in range(10):
+            for i in range(3):
                 scores = cross_validation.cross_val_score(
                     mlp, data_set.data, data_set.target, cv=5, scoring='accuracy', n_jobs=-1)
                 ave += scores.mean()
-            ave /= 10
+            ave /= 3
             print("Accuracy: %0.2f " % (ave))
