@@ -106,24 +106,14 @@ class MLP(BaseEstimator):
         Returns:
         int : label of classify result
 
-        Exmples:
-        >>> e = ELM(10, 3)
-        >>> e.out_num = 3
-        >>> e._ELM__vtol([1, -1, -1])
-        1
-        >>> e._ELM__vtol([-1, 1, -1])
-        2
-        >>> e._ELM__vtol([-1, -1, 1])
-        3
-        >>> e._ELM__vtol([-1, -1, -1])
-        0
-
         """
 
+        fix_num = lambda x : 1 if 1 == round(x,0) else -1
+
         if self.out_num == 1:
-            return round(vec[0], 0)
+            return fix_num(vec[0])
         else:
-            v = list(vec)
+            v = list(map(fix_num, list(vec)))
             if len(v) == 1:
                 return vec[0]
             elif (max(v) == -1):
@@ -134,7 +124,7 @@ class MLP(BaseEstimator):
     def predict(self, x_vs):
         x_vs = self.add_bias(x_vs)
         mid_vs = [self.calc_out(self.wm_vs, x_v) for x_v in x_vs]
-        out_vs = [ 1 if 1 == self.__vtol( self.calc_out( self.wo_vs, mid_v) ) else -1 for mid_v in mid_vs]
+        out_vs = [ self.__vtol( self.calc_out( self.wo_vs, mid_v) ) for mid_v in mid_vs]
         return np.array(out_vs)
 
 
@@ -147,52 +137,50 @@ class MLP(BaseEstimator):
         out_v = self.calc_out( self.wo_vs, mid_v)
         print(out_v)
 
-        #return 1 if round(out_v) == 1 else -1
-
         return 1 if self.__vtol(out_v)  == 1 else -1
 
 
 if __name__ == "__main__":
 
-    db_name = 'australian'
-    #db_name = 'iris'
+    #db_names = ['australian']
+    db_names = ['iris']
 
     hid_nums = [10]
 
-    data_set = fetch_mldata(db_name)
-    data_set.data = preprocessing.scale(data_set.data)
+    #data_set = fetch_mldata(db_name)
+    #data_set.data = preprocessing.scale(data_set.data)
 
-    X_train, X_test, y_train, y_test = cross_validation.train_test_split(
-        data_set.data, data_set.target, test_size=0.4, random_state=0)
+    #X_train, X_test, y_train, y_test = cross_validation.train_test_split(
+    #    data_set.data, data_set.target, test_size=0.4, random_state=0)
 
-    mlp = MLP(10,100)
-    mlp.fit(X_train, y_train)
+    #mlp = MLP(10,100)
+    #mlp.fit(X_train, y_train)
 
     #print(y_test[0])
 
     #print(mlp.one_predict(X_test[0]))
     #print(y_test == mlp.predict(X_test))
 
-    print(sum(y_test == mlp.predict(X_test)) / len(y_test) )
+    #print(sum(y_test == mlp.predict(X_test)) / len(y_test) )
 
 
 
 
-#    for db_name in db_names:
-#        print(db_name)
-#        # load iris data set
-#        data_set = fetch_mldata(db_name)
-#        data_set.data = preprocessing.scale(data_set.data)
-#
-#        print('MLP')
-#        for hid_num in hid_nums:
-#            print(str(hid_num), end=' ')
-#            mlp = MLP(10,100)
-#            ave = 0
-#
-#            for i in range(3):
-#                scores = cross_validation.cross_val_score(
-#                    mlp, data_set.data, data_set.target, cv=5, scoring='accuracy')
-#                ave += scores.mean()
-#            ave /= 3
-#            print("Accuracy: %0.2f " % (ave))
+    for db_name in db_names:
+        print(db_name)
+        # load iris data set
+        data_set = fetch_mldata(db_name)
+        data_set.data = preprocessing.scale(data_set.data)
+
+        print('MLP')
+        for hid_num in hid_nums:
+            print(str(hid_num), end=' ')
+            mlp = MLP(10,100)
+            ave = 0
+
+            for i in range(3):
+                scores = cross_validation.cross_val_score(
+                    mlp, data_set.data, data_set.target, cv=5, scoring='accuracy')
+                ave += scores.mean()
+            ave /= 3
+            print("Accuracy: %0.2f " % (ave))
