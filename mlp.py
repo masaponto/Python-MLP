@@ -16,8 +16,6 @@ class MLP(BaseEstimator):
 
     """
 
-
-
     def __init__(self, mid_num, epochs, r=0.5, a=1):
         """mlp using sigmoid
         mid_num int : 中間層ノード数
