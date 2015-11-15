@@ -16,78 +16,155 @@ class MLP(BaseEstimator):
 
     """
 
-    def __init__(self, mid_num, epochs, r=0.5, a=1):
-        """mlp using sigmoid
-        mid_num int : 中間層ノード数
-        out_num int : 出力層ノード数
-        epochs int: 学習回数
-        r float: 学習率
-        a int: シグモイド関数の定数
+    def __init__(self, hid_num, epochs, r=0.5, a=1):
         """
-        self.mid_num = mid_num
+        mlp using sigmoid
+        Args:
+        hid_num int : number of hidden neuron
+        out_num int : number of output neuron
+        epochs int: number of epoch
+        r float: learning rate
+        a int:  sigmoid constant value
+        """
+        self.hid_num = hid_num
         self.epochs = epochs
         self.r = r
         self.a = a
 
-    def sigmoid(self, x):
+    def _sigmoid(self, x):
+        """
+        sigmoid function
+        Args:
+        x float
+        Returns:
+        float
+        """
         return 1 / (1 + np.exp(- self.a * x))
 
-    def sigmoid_(self, x):
-        """シグモイド関数微分
+    def _dsigmoid(self, x):
+        """
+        diff sigmoid function
+        Args:
         x float
+        Returns:
+        float
         """
         return self.a * x * (1.0 - x)
 
-    def calc_out(self, w_vs, x_v):
+    def _calc_out(self, w_vs, x_v):
         """
+        Args:
         w_vs [[float]]
         x_v [float] : feature vector
+        Returns:
+        float
         """
 
-        return self.sigmoid(np.dot(w_vs, x_v))
+        return self._sigmoid(np.dot(w_vs, x_v))
 
-    def out_error(self, d_v, out_v):
-        """出力層の誤差
+    def _out_error(self, d_v, out_v):
+        """
+        出力層の誤差
+        Args:
         d_v [float]
         out_v [float]
+        Returns:
+        [float]
         """
-        return (out_v - d_v) * self.sigmoid_(out_v)
+        return (out_v - d_v) * self._dsigmoid(out_v)
 
-    def mid_error(self, mid_v, eo_v):
-        """中間層の誤差
+    def _mid_error(self, mid_v, eo_v):
+        """
+        中間層の誤差
+        Args:
         mid_v  [float]
         eo_v [float]
+        Returns:
+        [float]
         """
-        return np.dot(self.wo_vs.T, eo_v) * self.sigmoid_(mid_v)
+        return np.dot(self.wo_vs.T, eo_v) * self._dsigmoid(mid_v)
 
-    def w_update(self, w_vs, e_v, i_v):
-        """重み更新
+    def _w_update(self, w_vs, e_v, i_v):
+        """
+        update weights
+        Args:
         w_vs [[float]]
         e_v [float]
         i_v [float]
+        Return:
+        [[float]]
         """
         e_v = np.atleast_2d(e_v)
         i_v = np.atleast_2d(i_v)
         return w_vs - self.r * np.dot(e_v.T, i_v)
 
-    def add_bias(self, x_vs):
-        """add bias to list
+    def _add_bias(self, x_vs):
+        """
+        add bias to list
 
         Args:
         x_vs [[float]] Array: vec to add bias
 
         Returns:
         [float]: added vec
-
         """
 
         return np.c_[x_vs, np.ones(len(x_vs))]
 
+    def _ltov(self, n):
+        """
+        trasform label scalar to vector
+
+        Args:
+        n (int) : number of class, number of out layer neuron
+        label (int) : label
+
+        Exmples:
+        >>> p = MLP(5, 100)
+        >>> p._ltov(3)(1)
+        [1, -1, -1]
+        >>> p._ltov(3)(2)
+        [-1, 1, -1]
+        >>> p._ltov(3)(3)
+        [-1, -1, 1]
+        """
+        def inltov(label):
+            return [-1 if i != label else 1 for i in range(1, n + 1)]
+        return inltov
+
+    def _vtol(self, vec):
+        """
+        tranceform vector (list) to label
+        Args:
+        v: int list, list to transform
+
+        Returns:
+        int : label of classify result
+
+        Exmples:
+        >>> p = MLP(10, 3)
+        >>> p.out_num = 3
+        >>> p._vtol([1, -1, -1])
+        1
+        >>> p._vtol([-1, 1, -1])
+        2
+        >>> p._vtol([-1, -1, 1])
+        3
+        """
+        fix_num = lambda x: 1 if 1 == round(x, 0) else -1
+        if self.out_num == 1:
+            return fix_num(vec[0])
+        else:
+            v = list(vec)
+            return int(v.index(max(v))) + 1
+
+
     def fit(self, X, y):
-        """学習
+        """
+        学習
+        Args:
         X [[float]] array : featur vector
         y [int] array : class labels
-
         """
 
         self.out_num = max(y)
@@ -97,143 +174,63 @@ class MLP(BaseEstimator):
         else:
             d_vs = np.array(list(map(self._ltov(self.out_num), y)))
 
-        x_vs = self.add_bias(X)
+        x_vs = self._add_bias(X)
         x_vd = len(x_vs[0])
 
         # 重み
         np.random.seed()
-        self.wm_vs = np.random.uniform(-1.0, 1.0, (self.mid_num, x_vd))
-        self.wo_vs = np.random.uniform(-1.0, 1.0, (self.out_num, self.mid_num))
+        self.wm_vs = np.random.uniform(-1.0, 1.0, (self.hid_num, x_vd))
+        self.wo_vs = np.random.uniform(-1.0, 1.0, (self.out_num, self.hid_num))
 
         for n in range(self.epochs):
             for d_v, x_v in zip(d_vs, x_vs):
 
                 # forward phase
                 # 中間層の結果
-                mid_v = self.calc_out(self.wm_vs, x_v)
+                mid_v = self._calc_out(self.wm_vs, x_v)
                 # 出力層の結果
-                out_v = self.calc_out(self.wo_vs, mid_v)
+                out_v = self._calc_out(self.wo_vs, mid_v)
 
                 # backward phase
                 # 出力層の誤差
-                eo_v = self.out_error(d_v, out_v)
+                eo_v = self._out_error(d_v, out_v)
                 # 中間層
-                em_v = self.mid_error(mid_v,  eo_v)
+                em_v = self._mid_error(mid_v,  eo_v)
 
                 # weight update
                 # 中間層
-                self.wm_vs = self.w_update(self.wm_vs, em_v, x_v)
+                self.wm_vs = self._w_update(self.wm_vs, em_v, x_v)
 
                 # 出力層
-                self.wo_vs = self.w_update(self.wo_vs, eo_v, mid_v)
+                self.wo_vs = self._w_update(self.wo_vs, eo_v, mid_v)
 
-    def _ltov(self, n):
-        """trasform label scalar to vector
-
-            Args:
-            n (int) : number of class, number of out layer neuron
-            label (int) : label
-
-            Exmples:
-            >>> p = MLP(5, 100)
-            >>> p._ltov(3)(1)
-            [1, -1, -1]
-            >>> p._ltov(3)(2)
-            [-1, 1, -1]
-            >>> p._ltov(3)(3)
-            [-1, -1, 1]
-
-            """
-        def inltov(label):
-            return [-1 if i != label else 1 for i in range(1, n + 1)]
-        return inltov
-
-    def __vtol(self, vec):
-        """tranceform vector (list) to label
-
-        Args:
-        v: int list, list to transform
-
-        Returns:
-        int : label of classify result
-        Exmples:
-        >>> p = MLP(3, 100)
-        >>> p.out_num = 3
-        >>> p._MLP__vtol([1, -1, -1])
-        1
-        >>> p._MLP__vtol([-1, 1, -1])
-        2
-        >>> p._MLP__vtol([-1, -1, 1])
-        3
-        >>> p._MLP__vtol([-1, -1, -1])
-        0
-
-        """
-
-        fix_num = lambda x: 1 if 1 == round(x, 0) else -1
-
-        if self.out_num == 1:
-            return fix_num(vec[0])
-        else:
-            v = list(map(fix_num, list(vec)))
-            if len(v) == 1:
-                return vec[0]
-            elif (max(v) == -1):
-                return 0
-            return int(v.index(1)) + 1
 
     def predict(self, x_vs):
         """
+        Args:
         x_vs [[float]] array
-
         """
-
-        x_vs = self.add_bias(x_vs)
-        mid_vs = [self.calc_out(self.wm_vs, x_v) for x_v in x_vs]
-        out_vs = [self.__vtol(self.calc_out(self.wo_vs, mid_v))
+        x_vs = self._add_bias(x_vs)
+        mid_vs = [self._calc_out(self.wm_vs, x_v) for x_v in x_vs]
+        out_vs = [self._vtol(self._calc_out(self.wo_vs, mid_v))
                   for mid_v in mid_vs]
         return np.array(out_vs)
 
     def one_predict(self, x_v):
         """
+        Args:
         x_v [float] array
-
         """
-
         x_v = np.append(x_v, 1)
+        mid_v = self._calc_out(self.wm_vs, x_v)
+        out_v = self._calc_out(self.wo_vs, mid_v)
 
-        print(x_v)
-
-        mid_v = self.calc_out(self.wm_vs, x_v)
-        out_v = self.calc_out(self.wo_vs, mid_v)
-        print(out_v)
-
-        return self.__vtol(out_v)
+        return self._vtol(out_v)
 
 
-if __name__ == "__main__":
-    import doctest
-    doctest.testmod()
-
-    #db_names = ['australian']
-    db_names = ['iris']
-    hid_nums = [10]
-
-    #data_set = fetch_mldata(db_name)
-    #data_set.data = preprocessing.scale(data_set.data)
-    #
-    # X_train, X_test, y_train, y_test = cross_validation.train_test_split(
-    #    data_set.data, data_set.target, test_size=0.4, random_state=0)
-    #
-    #mlp = MLP(5, 1000)
-    #mlp.fit(X_train, y_train)
-
-    # print(y_test[0])
-
-    # print(mlp.one_predict(X_test[0]))
-    #print(y_test == mlp.predict(X_test))
-
-    #print(sum(y_test == mlp.predict(X_test)) / len(y_test))
+def main():
+    db_names = ['iris', 'australian']
+    hid_nums = [10, 20, 30, 40]
 
     for db_name in db_names:
         print(db_name)
@@ -252,4 +249,9 @@ if __name__ == "__main__":
                     mlp, data_set.data, data_set.target, cv=5, scoring='accuracy', n_jobs=-1)
                 ave += scores.mean()
             ave /= 3
-            print("Accuracy: %0.2f " % (ave))
+            print("Accuracy: %0.3f " % (ave))
+
+if __name__ == "__main__":
+    import doctest
+    doctest.testmod()
+    main()
