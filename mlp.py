@@ -22,6 +22,7 @@ class MLP(BaseEstimator):
         self.epochs = epochs
         self.r = r
         self.batch_size = batch_size
+        self.ws = []
 
     def _sigmoid(self, x, a=1):
         """
@@ -88,20 +89,18 @@ class MLP(BaseEstimator):
         return self._dsigmoid(u) * np.dot(w.T, delta)
 
     def _predict(self, x):
-        _x = x.T
+        y = x.T
         for w in self.ws:
-            _x = self._sigmoid(np.dot(w, _x))
-        return _x
+            y = self._sigmoid(np.dot(w, y))
+        return y - 0.5
 
     def predict(self, x):
         x = self._add_bias(x)
         y = x.T
         for w in self.ws:
             y = self._sigmoid(np.dot(w, y))
-        y = y.T
 
-        if self.out_num != 1:
-            y = np.array(list(map(self._vtol, y)))
+        y = np.array(list(map(self._vtol, y.T)))
 
         return y
 
@@ -118,7 +117,6 @@ class MLP(BaseEstimator):
 
         # init hidden weight vecotors
         n = X.shape[1]
-        self.ws = []
         for m in self.hid_nums:
             np.random.seed()
             w = np.random.uniform(-1., 1., (m, n))
@@ -141,19 +139,23 @@ class MLP(BaseEstimator):
                 z = _x.T
                 zs.append(z)
                 us = []
-                for w in self.ws[:len(self.ws) - 1]:
+                for w in self.ws[:-1]:
                     u = np.dot(w, z)
                     us.append(u)
                     z = self._sigmoid(u)
                     zs.append(z)
 
+
                 deltas = []
                 delta = _y.T - self._predict(_x)
                 deltas.append(delta)
+
+
                 for u, w in zip(reversed(us), reversed(self.ws)):
                     delta = self._get_delta(w, delta, u)
                     deltas.append(delta)
 
+                #print('z', len(zs), 'delta', len(deltas))
                 dws = []
                 for delta, z in zip(deltas, reversed(zs)):
                     dw = np.dot(delta, z.T) / self.batch_size
@@ -162,13 +164,15 @@ class MLP(BaseEstimator):
                 for i, dw in enumerate(reversed(dws)):
                     self.ws[i] = self.ws[i] - self.r * dw
 
+                print(self.ws[1])
+
 def main():
     db_name = 'iris'
 
     data_set = fetch_mldata(db_name)
     data_set.data = preprocessing.scale(data_set.data)
 
-    mlp = MLP(hid_nums=[10], epochs=10, batch_size=30)
+    mlp = MLP(hid_nums=[10], epochs=5, batch_size=5)
 
     X_train, X_test, y_train, y_test = cross_validation.train_test_split(
         data_set.data, data_set.target, test_size=0.4, random_state=0)
@@ -176,12 +180,12 @@ def main():
     mlp.fit(X_train, y_train)
     re = mlp.predict(X_test)
 
-    [print(w) for w in mlp.ws]
     print(re)
+    print(y_test)
 
-    score = sum([r == y for r, y in zip(re, data_set.target)]) / len(data_set.target)
-    #print("general Accuracy %0.3f " % score)
-    #print(score)
+    score = sum([r == y for r, y in zip(re, y_test)]) / len(y_test)
+    print("general Accuracy %0.3f " % score)
+    # print(score)
 
 
 if __name__ == "__main__":
