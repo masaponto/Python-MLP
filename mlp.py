@@ -8,8 +8,6 @@ from sklearn.base import BaseEstimator
 from sklearn.datasets import fetch_mldata
 from sklearn import cross_validation
 
-from more_itertools import chunked
-
 
 class MLP(BaseEstimator):
 
@@ -36,12 +34,13 @@ class MLP(BaseEstimator):
 
     def _dsigmoid(self, x, a=1):
         """
-        diff sigmoid function
+        derivative of sigmoid function
         Args:
         x float
         Returns:
         float
         """
+
         return a * self._sigmoid(x) * (1.0 - self._sigmoid(x))
 
     def _ltov(self, n):
@@ -51,9 +50,18 @@ class MLP(BaseEstimator):
         Args:
         n (int) : number of class, number of out layer neuron
         label (int) : label
+
+        Examples:
+        >>> mlp = MLP(10, 3)
+        >>> mlp._ltov(3)(1)
+        [1, 0, 0]
+        >>> mlp._ltov(3)(2)
+        [0, 1, 0]
+        >>> mlp._ltov(3)(3)
+        [0, 0, 1]
         """
         def inltov(label):
-            return [-1 if i != label else 1 for i in range(1, n + 1)]
+            return [0 if i != label else 1 for i in range(1, n + 1)]
         return inltov
 
     def _vtol(self, vec):
@@ -64,10 +72,21 @@ class MLP(BaseEstimator):
 
         Returns:
         int : label of classify result
+
+        Examples
+        >>> mlp = MLP(10, 3)
+        >>> mlp.out_num = 3
+        >>> mlp._vtol([1, -1, -1])
+        1
+        >>> mlp._vtol([-1, 1, -1])
+        2
+        >>> mlp._vtol([-1, -1, 1])
+        3
         """
-        fix_num = lambda x: 1 if 1 == round(x, 0) else -1
+
         if self.out_num == 1:
-            return fix_num(vec[0])
+            return 1 if 1 == round(vec, 0) else 0
+
         else:
             v = list(vec)
             return int(v.index(max(v))) + 1
@@ -81,6 +100,12 @@ class MLP(BaseEstimator):
 
         Returns:
         [float]: added vec
+
+        Examples:
+        >>> mlp = MLP([10])
+        >>> mlp._add_bias(np.array([[1,2,3], [1,2,3]]))
+        array([[ 1.,  2.,  3.,  1.],
+               [ 1.,  2.,  3.,  1.]])
         """
 
         return np.c_[x_vs, np.ones(len(x_vs))]
@@ -92,7 +117,7 @@ class MLP(BaseEstimator):
         y = x.T
         for w in self.ws:
             y = self._sigmoid(np.dot(w, y))
-        return y - 0.5
+        return y
 
     def predict(self, x):
         x = self._add_bias(x)
@@ -147,11 +172,15 @@ class MLP(BaseEstimator):
 
                 deltas = []
                 delta = _y.T - self._predict(_x)
+                print(_y.T, self._predict(_x))
                 deltas.append(delta)
 
                 for u, w in zip(reversed(us), reversed(self.ws)):
                     delta = self._get_delta(w, delta, u)
                     deltas.append(delta)
+
+                print('z', z[1])
+                print('delta', delta[0])
 
                 #print('z', len(zs), 'delta', len(deltas))
                 dws = []
@@ -159,10 +188,12 @@ class MLP(BaseEstimator):
                     dw = np.dot(delta, z.T) / self.batch_size
                     dws.append(dw)
 
+                print('dws', dws[0])
+
                 for i, dw in enumerate(reversed(dws)):
                     self.ws[i] = self.ws[i] - self.r * dw
 
-                print(self.ws[1])
+                print('ws', self.ws[1])
 
 
 def main():
@@ -171,18 +202,18 @@ def main():
     data_set = fetch_mldata(db_name)
     data_set.data = preprocessing.scale(data_set.data)
 
-    mlp = MLP(hid_nums=[10], epochs=5, batch_size=5)
+    mlp = MLP(hid_nums=[10], epochs=20, batch_size=5)
 
     X_train, X_test, y_train, y_test = cross_validation.train_test_split(
         data_set.data, data_set.target, test_size=0.4, random_state=0)
 
     mlp.fit(X_train, y_train)
-    re = mlp.predict(X_test)
+    re = mlp.predict(X_train)
 
     print(re)
     print(y_test)
 
-    score = sum([r == y for r, y in zip(re, y_test)]) / len(y_test)
+    score = sum([r == y for r, y in zip(re, y_train)]) / len(y_train)
     print("general Accuracy %0.3f " % score)
     # print(score)
 
