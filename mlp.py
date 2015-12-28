@@ -105,7 +105,7 @@ class MLP(BaseEstimator):
         return y
 
     def fit(self, X, y):
-        self.data_num = len(X)
+        self.data_num = X.shape[0]
         assert(self.data_num > self.batch_size)
 
         self.out_num = max(y)
@@ -130,7 +130,7 @@ class MLP(BaseEstimator):
 
         # fitting
         for n in range(self.epochs):
-            for index in range(0, X.shape[0], self.batch_size):
+            for index in range(0, self.out_num, self.batch_size):
 
                 _x = X[index:index + self.batch_size]
                 _y = y[index:index + self.batch_size]
@@ -145,11 +145,9 @@ class MLP(BaseEstimator):
                     z = self._sigmoid(u)
                     zs.append(z)
 
-
                 deltas = []
                 delta = _y.T - self._predict(_x)
                 deltas.append(delta)
-
 
                 for u, w in zip(reversed(us), reversed(self.ws)):
                     delta = self._get_delta(w, delta, u)
@@ -165,6 +163,7 @@ class MLP(BaseEstimator):
                     self.ws[i] = self.ws[i] - self.r * dw
 
                 print(self.ws[1])
+
 
 def main():
     db_name = 'iris'
