@@ -16,6 +16,7 @@ class MLP(BaseEstimator):
                  epochs=1000,
                  r=0.5,
                  batch_size=200):
+
         self.hid_nums = hid_nums
         self.epochs = epochs
         self.r = r
@@ -85,7 +86,7 @@ class MLP(BaseEstimator):
         """
 
         if self.out_num == 1:
-            return 1 if 1 == round(vec, 0) else 0
+            return 1 if 1 == np.around(vec) else 0
 
         else:
             v = list(vec)
@@ -131,16 +132,20 @@ class MLP(BaseEstimator):
 
     def fit(self, X, y):
         self.data_num = X.shape[0]
+
         assert(self.data_num > self.batch_size)
 
         self.out_num = max(y)
 
         # fix data
         if self.out_num != 1:
+            # integer label to array
             y = np.array(list(map(self._ltov(self.out_num), y)))
+
+        # add bias
         X = self._add_bias(X)
 
-        # init hidden weight vecotors
+        # initialize hidden weight vecotors at random
         n = X.shape[1]
         for m in self.hid_nums:
             np.random.seed()
@@ -148,61 +153,53 @@ class MLP(BaseEstimator):
             self.ws.append(w)
             n = m
 
-        # init output weight vecotors
+        # initialize output weight vecotors at random
         np.random.seed()
         w = np.random.uniform(-1., 1., (self.out_num, n))
         self.ws.append(w)
 
         # fitting
-        for n in range(self.epochs):
+        for i in range(self.epochs):
             for index in range(0, self.out_num, self.batch_size):
 
                 _x = X[index:index + self.batch_size]
                 _y = y[index:index + self.batch_size]
 
-                zs = []
+                zs, us, deltas, dws = [], [], [], []
+
                 z = _x.T
                 zs.append(z)
-                us = []
+
                 for w in self.ws[:-1]:
                     u = np.dot(w, z)
-                    us.append(u)
                     z = self._sigmoid(u)
+                    us.append(u)
                     zs.append(z)
 
-                deltas = []
-                delta = _y.T - self._predict(_x)
-                print(_y.T, self._predict(_x))
-                deltas.append(delta)
+                #delta = _y.T - self._predict(_x)
+                #out = self._predict(_x)
+                delta = (_y.T - self._predict(_x))
 
+                deltas.append(delta)
                 for u, w in zip(reversed(us), reversed(self.ws)):
                     delta = self._get_delta(w, delta, u)
                     deltas.append(delta)
 
-                print('z', z[1])
-                print('delta', delta[0])
+                for delta, z in zip(reversed(deltas), zs):
+                    dws.append(np.dot(delta, z.T) / self.batch_size)
 
-                #print('z', len(zs), 'delta', len(deltas))
-                dws = []
-                for delta, z in zip(deltas, reversed(zs)):
-                    dw = np.dot(delta, z.T) / self.batch_size
-                    dws.append(dw)
-
-                print('dws', dws[0])
-
-                for i, dw in enumerate(reversed(dws)):
-                    self.ws[i] = self.ws[i] - self.r * dw
-
-                print('ws', self.ws[1])
+                for i, dw in enumerate(dws):
+                    self.ws[i] -= self.r * dw
 
 
 def main():
     db_name = 'iris'
+    #db_name = 'australian'
 
     data_set = fetch_mldata(db_name)
     data_set.data = preprocessing.scale(data_set.data)
 
-    mlp = MLP(hid_nums=[10], epochs=20, batch_size=5)
+    mlp = MLP(hid_nums=[100], epochs=10, batch_size=1)
 
     X_train, X_test, y_train, y_test = cross_validation.train_test_split(
         data_set.data, data_set.target, test_size=0.4, random_state=0)
@@ -211,11 +208,10 @@ def main():
     re = mlp.predict(X_train)
 
     print(re)
-    print(y_test)
+    print(y_train)
 
     score = sum([r == y for r, y in zip(re, y_train)]) / len(y_train)
     print("general Accuracy %0.3f " % score)
-    # print(score)
 
 
 if __name__ == "__main__":
