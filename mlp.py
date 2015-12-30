@@ -15,7 +15,7 @@ class MLP(BaseEstimator):
                  hid_nums=[100],
                  epochs=1000,
                  r=0.5,
-                 batch_size=200):
+                 batch_size=20):
 
         self.hid_nums = hid_nums
         self.epochs = epochs
@@ -41,12 +41,11 @@ class MLP(BaseEstimator):
         Returns:
         float
         """
-
         return a * self._sigmoid(x) * (1.0 - self._sigmoid(x))
 
     def _ltov(self, n):
         """
-        trasform label scalar to vector
+        trasform label(integer) to vector (list)
 
         Args:
         n (int) : number of class, number of out layer neuron
@@ -62,12 +61,15 @@ class MLP(BaseEstimator):
         [0, 0, 1]
         """
         def inltov(label):
-            return [0 if i != label else 1 for i in range(1, n + 1)]
+            if n == 1:
+                return 1 if label == 1 else 0
+            else:
+                return [0 if i != label else 1 for i in range(1, n + 1)]
         return inltov
 
     def _vtol(self, vec):
         """
-        tranceform vector (list) to label
+        tranceform vector(numpy array) to label (integer)
         Args:
         v: int list, list to transform
 
@@ -84,7 +86,6 @@ class MLP(BaseEstimator):
         >>> mlp._vtol([-1, -1, 1])
         3
         """
-
         if self.out_num == 1:
             return 1 if 1 == np.around(vec) else 0
 
@@ -108,7 +109,6 @@ class MLP(BaseEstimator):
         array([[ 1.,  2.,  3.,  1.],
                [ 1.,  2.,  3.,  1.]])
         """
-
         return np.c_[x_vs, np.ones(len(x_vs))]
 
     def _get_delta(self, w, delta, u):
@@ -126,21 +126,18 @@ class MLP(BaseEstimator):
         for w in self.ws:
             y = self._sigmoid(np.dot(w, y))
 
-        y = np.array(list(map(self._vtol, y.T)))
-
-        return y
+        return np.array(list(map(self._vtol, y.T)))
 
     def fit(self, X, y):
+        # number of training data
         self.data_num = X.shape[0]
-
         assert(self.data_num > self.batch_size)
 
+        # numer of output neurons
         self.out_num = max(y)
 
-        # fix data
-        if self.out_num != 1:
-            # integer label to array
-            y = np.array(list(map(self._ltov(self.out_num), y)))
+        # fix data label(integer) to array
+        y = np.array(list(map(self._ltov(self.out_num), y)))
 
         # add bias
         X = self._add_bias(X)
@@ -176,10 +173,7 @@ class MLP(BaseEstimator):
                     us.append(u)
                     zs.append(z)
 
-                #delta = _y.T - self._predict(_x)
-                #out = self._predict(_x)
-                delta = (_y.T - self._predict(_x))
-
+                delta = _y.T - self._predict(_x)
                 deltas.append(delta)
                 for u, w in zip(reversed(us), reversed(self.ws)):
                     delta = self._get_delta(w, delta, u)
@@ -199,7 +193,7 @@ def main():
     data_set = fetch_mldata(db_name)
     data_set.data = preprocessing.scale(data_set.data)
 
-    mlp = MLP(hid_nums=[100], epochs=10, batch_size=1)
+    mlp = MLP(hid_nums=[10], epochs=10, batch_size=1)
 
     X_train, X_test, y_train, y_test = cross_validation.train_test_split(
         data_set.data, data_set.target, test_size=0.4, random_state=0)
