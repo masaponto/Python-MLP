@@ -87,7 +87,7 @@ class MLP(BaseEstimator):
         3
         """
         if self.out_num == 1:
-            return 1 if 1 == np.around(vec) else 0
+            return 1 if 1 == np.around(vec) else -1
         else:
             v = list(vec)
             return int(v.index(max(v))) + 1
@@ -186,8 +186,8 @@ class MLP(BaseEstimator):
 
 
 def main():
-    db_name = 'iris'
-    #db_name = 'australian'
+    #db_name = 'iris'
+    db_name = 'australian'
 
     data_set = fetch_mldata(db_name)
     data_set.data = preprocessing.scale(data_set.data)
@@ -198,11 +198,10 @@ def main():
         data_set.data, data_set.target, test_size=0.4, random_state=0)
 
     mlp.fit(X_train, y_train)
-    re = mlp.predict(X_train)
+    re = mlp.predict(X_test)
 
-    score = sum([r == y for r, y in zip(re, y_train)]) / len(y_train)
+    score = sum([r == y for r, y in zip(re, y_test)]) / len(y_test)
     print("general Accuracy %0.3f " % score)
-
 
 if __name__ == "__main__":
     import doctest
