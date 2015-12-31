@@ -88,7 +88,6 @@ class MLP(BaseEstimator):
         """
         if self.out_num == 1:
             return 1 if 1 == np.around(vec) else 0
-
         else:
             v = list(vec)
             return int(v.index(max(v))) + 1
@@ -173,7 +172,7 @@ class MLP(BaseEstimator):
                     us.append(u)
                     zs.append(z)
 
-                delta = _y.T - self._predict(_x)
+                delta = self._predict(_x) - _y.T
                 deltas.append(delta)
                 for u, w in zip(reversed(us), reversed(self.ws)):
                     delta = self._get_delta(w, delta, u)
@@ -193,16 +192,13 @@ def main():
     data_set = fetch_mldata(db_name)
     data_set.data = preprocessing.scale(data_set.data)
 
-    mlp = MLP(hid_nums=[10], epochs=10, batch_size=1)
+    mlp = MLP(hid_nums=[10], epochs=100, batch_size=10)
 
     X_train, X_test, y_train, y_test = cross_validation.train_test_split(
         data_set.data, data_set.target, test_size=0.4, random_state=0)
 
     mlp.fit(X_train, y_train)
     re = mlp.predict(X_train)
-
-    print(re)
-    print(y_train)
 
     score = sum([r == y for r, y in zip(re, y_train)]) / len(y_train)
     print("general Accuracy %0.3f " % score)
