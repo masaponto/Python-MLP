@@ -1,6 +1,4 @@
 # Python-MLP
-Multi Layer Perceptron (Single Hidden Layer) written in Python3.4.3
-
+Multi Layer Perceptron written in Python3.4.3  
+batch learning avilable  
 ## How to use
-see  
-http://nbviewer.ipython.org/github/masaponto/Python-MLP/blob/master/mlp.ipynb  
