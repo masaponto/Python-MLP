@@ -21,7 +21,6 @@ class MLP(BaseEstimator):
         self.epochs = epochs
         self.r = r
         self.batch_size = batch_size
-        self.ws = []
 
     def _sigmoid(self, x, a=1):
         """
@@ -52,7 +51,7 @@ class MLP(BaseEstimator):
         label (int) : label
 
         Examples:
-        >>> mlp = MLP(10, 3)
+        >>> mlp = MLP(10)
         >>> mlp._ltov(3)(1)
         [1, 0, 0]
         >>> mlp._ltov(3)(2)
@@ -77,7 +76,7 @@ class MLP(BaseEstimator):
         int : label of classify result
 
         Examples
-        >>> mlp = MLP(10, 3)
+        >>> mlp = MLP()
         >>> mlp.out_num = 3
         >>> mlp._vtol([1, -1, -1])
         1
@@ -103,7 +102,7 @@ class MLP(BaseEstimator):
         [float]: added vec
 
         Examples:
-        >>> mlp = MLP([10])
+        >>> mlp = MLP()
         >>> mlp._add_bias(np.array([[1,2,3], [1,2,3]]))
         array([[ 1.,  2.,  3.,  1.],
                [ 1.,  2.,  3.,  1.]])
@@ -128,6 +127,10 @@ class MLP(BaseEstimator):
         return np.array(list(map(self._vtol, y.T)))
 
     def fit(self, X, y):
+
+        # initialize weights
+        self.ws = []
+
         # number of training data
         self.data_num = X.shape[0]
         assert(self.data_num > self.batch_size)
@@ -201,7 +204,7 @@ def main():
     re = mlp.predict(X_test)
 
     score = sum([r == y for r, y in zip(re, y_test)]) / len(y_test)
-    print("general Accuracy %0.3f " % score)
+    print("Accuracy %0.3f " % score)
 
 if __name__ == "__main__":
     import doctest
