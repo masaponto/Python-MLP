@@ -7,7 +7,7 @@ from sklearn import preprocessing
 from sklearn.base import BaseEstimator
 from sklearn.datasets import fetch_mldata
 from sklearn import cross_validation
-
+from sklearn.utils import shuffle
 
 class MLP(BaseEstimator):
 
@@ -21,50 +21,6 @@ class MLP(BaseEstimator):
         self.epochs = epochs
         self.r = r
         self.batch_size = batch_size
-
-    def _sigmoid(self, x, a=1):
-        """
-        sigmoid function
-        Args:
-        x float
-        Returns:
-        float
-        """
-        return 1 / (1 + np.exp(- a * x))
-
-    def _dsigmoid(self, x, a=1):
-        """
-        derivative of sigmoid function
-        Args:
-        x float
-        Returns:
-        float
-        """
-        return a * self._sigmoid(x) * (1.0 - self._sigmoid(x))
-
-    def _ltov(self, n):
-        """
-        trasform label(integer) to vector (list)
-
-        Args:
-        n (int) : number of class, number of out layer neuron
-        label (int) : label
-
-        Examples:
-        >>> mlp = MLP(10)
-        >>> mlp._ltov(3)(1)
-        [1, 0, 0]
-        >>> mlp._ltov(3)(2)
-        [0, 1, 0]
-        >>> mlp._ltov(3)(3)
-        [0, 0, 1]
-        """
-        def inltov(label):
-            if n == 1:
-                return 1 if label == 1 else 0
-            else:
-                return [0 if i != label else 1 for i in range(1, n + 1)]
-        return inltov
 
     def _vtol(self, vec):
         """
@@ -85,11 +41,29 @@ class MLP(BaseEstimator):
         >>> mlp._vtol([-1, -1, 1])
         3
         """
+
         if self.out_num == 1:
             return 1 if 1 == np.around(vec) else -1
         else:
             v = list(vec)
             return int(v.index(max(v))) + 1
+
+    def _ltov(self, n, label):
+        """
+        trasform label scalar to vector
+        Args:
+        n (int) : number of class, number of out layer neuron
+        label (int) : label
+        Exmples:
+        >>> mlp = MLP(10, 3)
+        >>> mlp._ltov(3, 1)
+        [1, -1, -1]
+        >>> mlp._ltov(3, 2)
+        [-1, 1, -1]
+        >>> mlp._ltov(3, 3)
+        [-1, -1, 1]
+        """
+        return [-1 if i != label else 1 for i in range(1, n + 1)]
 
     def _add_bias(self, x_vs):
         """
@@ -112,11 +86,25 @@ class MLP(BaseEstimator):
     def _get_delta(self, w, delta, u):
         return self._dsigmoid(u) * np.dot(w.T, delta)
 
-    def _predict(self, x):
-        y = x.T
-        for w in self.ws:
-            y = self._sigmoid(np.dot(w, y))
-        return y
+    def _sigmoid(self, x, a=1):
+        """
+        sigmoid function
+        Args:
+        x float
+        Returns:
+        float
+        """
+        return 1 / (1 + np.exp(- a * x))
+
+    def _dsigmoid(self, x, a=1):
+        """
+        derivative of sigmoid function
+        Args:
+        x float
+        Returns:
+        float
+        """
+        return a * self._sigmoid(x) * (1.0 - self._sigmoid(x))
 
     def predict(self, x):
         x = self._add_bias(x)
@@ -124,7 +112,7 @@ class MLP(BaseEstimator):
         for w in self.ws:
             y = self._sigmoid(np.dot(w, y))
 
-        return np.array(list(map(self._vtol, y.T)))
+        return np.array([self._vtol(_y) for _y in y.T])
 
     def fit(self, X, y):
 
@@ -139,7 +127,7 @@ class MLP(BaseEstimator):
         self.out_num = max(y)
 
         # fix data label(integer) to array
-        y = np.array(list(map(self._ltov(self.out_num), y)))
+        y = np.array([self._ltov(self.out_num, _y) for _y in y])
 
         # add bias
         X = self._add_bias(X)
@@ -148,18 +136,20 @@ class MLP(BaseEstimator):
         n = X.shape[1]
         for m in self.hid_nums:
             np.random.seed()
-            w = np.random.uniform(-1., 1., (m, n))
-            self.ws.append(w)
+            self.ws.append(np.random.uniform(-1., 1., (m, n)))
             n = m
 
         # initialize output weight vecotors at random
         np.random.seed()
-        w = np.random.uniform(-1., 1., (self.out_num, n))
-        self.ws.append(w)
+        self.ws.append(np.random.uniform(-1., 1., (self.out_num, n)))
 
         # fitting
         for i in range(self.epochs):
-            for index in range(0, self.out_num, self.batch_size):
+            X, y = shuffle(X, y, random_state=np.random.RandomState())
+            for index in range(0, self.data_num, self.batch_size):
+
+                for j in range(len(self.ws)):
+                    self.ws[j][-1] = np.full((1, self.ws[j].shape[1]), -1.)
 
                 _x = X[index:index + self.batch_size]
                 _y = y[index:index + self.batch_size]
@@ -169,24 +159,26 @@ class MLP(BaseEstimator):
                 z = _x.T
                 zs.append(z)
 
-                for w in self.ws[:-1]:
+                for w in self.ws:
                     u = np.dot(w, z)
                     z = self._sigmoid(u)
                     us.append(u)
                     zs.append(z)
 
-                delta = self._predict(_x) - _y.T
+                delta = (z - _y.T) * self._dsigmoid(u)
                 deltas.append(delta)
-                for u, w in zip(reversed(us), reversed(self.ws)):
-                    delta = self._get_delta(w, delta, u)
+
+                for _u, _w in zip(reversed(us[:-1]), reversed(self.ws)):
+                    delta = self._get_delta(_w, delta, _u)
                     deltas.append(delta)
 
-                for delta, z in zip(reversed(deltas), zs):
-                    dws.append(np.dot(delta, z.T) / self.batch_size)
+                for _delta, _z in zip(reversed(deltas), zs[:-1]):
+                    dws.append(np.dot(_delta, _z.T) / self.batch_size)
 
-                for i, dw in enumerate(dws):
-                    self.ws[i] -= self.r * dw
+                for j, dw in enumerate(dws):
+                    self.ws[j] -= self.r * dw
 
+                    #print(self.ws)
 
 def main():
     #db_name = 'iris'
@@ -195,7 +187,7 @@ def main():
     data_set = fetch_mldata(db_name)
     data_set.data = preprocessing.scale(data_set.data)
 
-    mlp = MLP(hid_nums=[10], epochs=100, batch_size=10)
+    mlp = MLP(hid_nums=[10], epochs=100, batch_size=1)
 
     X_train, X_test, y_train, y_test = cross_validation.train_test_split(
         data_set.data, data_set.target, test_size=0.4, random_state=0)
