@@ -168,6 +168,11 @@ class MLP(BaseEstimator):
                     us.append(u)
                     zs.append(z)
 
+                # add bias
+                for i in range(1, len(zs) -1):
+                    _z = zs[i]
+                    _z[-1] = np.full((1, _z.shape[1]), -1.)
+
                 delta = (z - _y.T) * self._dsigmoid(u)
                 deltas.append(delta)
 
@@ -189,7 +194,7 @@ def main():
     data_set = fetch_mldata(db_name)
     data_set.data = preprocessing.scale(data_set.data)
 
-    mlp = MLP(hid_nums=[30], epochs=1000, batch_size=1)
+    mlp = MLP(hid_nums=[5], epochs=1000, batch_size=1)
 
     mlp.fit(data_set.data, data_set.target)
     re = mlp.predict(data_set.data)
