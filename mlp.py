@@ -109,9 +109,12 @@ class MLP(BaseEstimator):
     def predict(self, x):
         x = self._add_bias(x)
         y = x.T
+
         for w in self.ws:
             y = self._sigmoid(np.dot(w, y))
 
+        #print(y)
+        #[print(_y) for _y in y.T]
         return np.array([self._vtol(_y) for _y in y.T])
 
     def fit(self, X, y):
@@ -148,11 +151,11 @@ class MLP(BaseEstimator):
             X, y = shuffle(X, y, random_state=np.random.RandomState())
             for index in range(0, self.data_num, self.batch_size):
 
-                for j in range(len(self.ws)):
-                    self.ws[j][-1] = np.full((1, self.ws[j].shape[1]), -1.)
+                end = index + self.batch_size
+                end_index = end if end <= self.data_num else self.data_num
 
-                _x = X[index:index + self.batch_size]
-                _y = y[index:index + self.batch_size]
+                _x = X[list(range(index, end_index)), :]
+                _y = y[list(range(index, end_index))]
 
                 zs, us, deltas, dws = [], [], [], []
 
@@ -178,7 +181,6 @@ class MLP(BaseEstimator):
                 for j, dw in enumerate(dws):
                     self.ws[j] -= self.r * dw
 
-                    #print(self.ws)
 
 def main():
     #db_name = 'iris'
@@ -187,7 +189,7 @@ def main():
     data_set = fetch_mldata(db_name)
     data_set.data = preprocessing.scale(data_set.data)
 
-    mlp = MLP(hid_nums=[10], epochs=100, batch_size=1)
+    mlp = MLP(hid_nums=[10], epochs=1000, batch_size=10)
 
     X_train, X_test, y_train, y_test = cross_validation.train_test_split(
         data_set.data, data_set.target, test_size=0.4, random_state=0)
