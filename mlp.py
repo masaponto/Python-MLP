@@ -189,15 +189,13 @@ def main():
     data_set = fetch_mldata(db_name)
     data_set.data = preprocessing.scale(data_set.data)
 
-    mlp = MLP(hid_nums=[10], epochs=1000, batch_size=10)
+    mlp = MLP(hid_nums=[30], epochs=1000, batch_size=1)
 
-    X_train, X_test, y_train, y_test = cross_validation.train_test_split(
-        data_set.data, data_set.target, test_size=0.4, random_state=0)
+    mlp.fit(data_set.data, data_set.target)
+    re = mlp.predict(data_set.data)
+    score = sum([r == y for r, y in zip(re, data_set.target)]
+                        ) / len(data_set.target)
 
-    mlp.fit(X_train, y_train)
-    re = mlp.predict(X_test)
-
-    score = sum([r == y for r, y in zip(re, y_test)]) / len(y_test)
     print("Accuracy %0.3f " % score)
 
 if __name__ == "__main__":
