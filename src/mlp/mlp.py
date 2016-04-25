@@ -95,7 +95,7 @@ class MLP(BaseEstimator):
         Returns:
         float
         """
-        return 1 / (1 + np.exp(- a * x))
+        return 1 / (1 + np.exp(np.where(np.abs(a * x) > 709, np.sign(x) * 709, a * x)))
 
     def _dsigmoid(self, x, a=1):
         """
