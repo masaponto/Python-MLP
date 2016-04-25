@@ -9,6 +9,7 @@ from sklearn.datasets import fetch_mldata
 from sklearn import cross_validation
 from sklearn.utils import shuffle
 
+
 class MLP(BaseEstimator):
 
     def __init__(self,
@@ -113,7 +114,7 @@ class MLP(BaseEstimator):
         for w in self.ws:
             y = self._sigmoid(np.dot(w, y))
 
-        #print(y)
+        # print(y)
         #[print(_y) for _y in y.T]
         return np.array([self._vtol(_y) for _y in y.T])
 
@@ -169,7 +170,7 @@ class MLP(BaseEstimator):
                     zs.append(z)
 
                 # add bias
-                for i in range(1, len(zs) -1):
+                for i in range(1, len(zs) - 1):
                     _z = zs[i]
                     _z[-1] = np.full((1, _z.shape[1]), -1.)
 
@@ -188,7 +189,7 @@ class MLP(BaseEstimator):
 
 
 def main():
-    #db_name = 'iris'
+
     db_name = 'australian'
 
     data_set = fetch_mldata(db_name)
@@ -199,11 +200,12 @@ def main():
     mlp.fit(data_set.data, data_set.target)
     re = mlp.predict(data_set.data)
     score = sum([r == y for r, y in zip(re, data_set.target)]
-                        ) / len(data_set.target)
+                ) / len(data_set.target)
 
     print("Accuracy %0.3f " % score)
 
 if __name__ == "__main__":
     import doctest
     doctest.testmod()
+
     main()
