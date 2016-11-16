@@ -4,13 +4,13 @@
 import numpy as np
 
 from sklearn import preprocessing
-from sklearn.base import BaseEstimator
+from sklearn.base import BaseEstimator, ClassifierMixin
 from sklearn.datasets import fetch_mldata
 from sklearn import cross_validation
 from sklearn.utils import shuffle
 
 
-class MLP(BaseEstimator):
+class MLP(BaseEstimator, ClassifierMixin):
 
     def __init__(self,
                  hid_nums=[100],
@@ -95,7 +95,7 @@ class MLP(BaseEstimator):
         Returns:
         float
         """
-        return 1 / (1 + np.exp(np.where(np.abs(-a * x) > 709, np.sign(-a * x) * 709, -a * x)))
+        return 1 / (1 + np.exp(-a * x))
 
     def _dsigmoid(self, x, a=1):
         """
@@ -114,8 +114,6 @@ class MLP(BaseEstimator):
         for w in self.ws:
             y = self._sigmoid(np.dot(w, y))
 
-        # print(y)
-        #[print(_y) for _y in y.T]
         return np.array([self._vtol(_y) for _y in y.T])
 
     def fit(self, X, y):
@@ -187,6 +185,8 @@ class MLP(BaseEstimator):
                 for j, dw in enumerate(dws):
                     self.ws[j] -= self.r * dw
 
+        return self
+
 
 def main():
 
@@ -197,12 +197,12 @@ def main():
 
     mlp = MLP(hid_nums=[5], epochs=1000, batch_size=1)
 
-    mlp.fit(data_set.data, data_set.target)
-    re = mlp.predict(data_set.data)
-    score = sum([r == y for r, y in zip(re, data_set.target)]
-                ) / len(data_set.target)
+    X_train, X_test, y_train, y_test = cross_validation.train_test_split(
+        data_set.data, data_set.target, test_size=0.4)
 
-    print("Accuracy %0.3f " % score)
+    mlp.fit(X_train, y_train)
+
+    print("Accuracy %0.3f " % mlp.score(X_test, y_test))
 
 if __name__ == "__main__":
     import doctest
