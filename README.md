@@ -13,6 +13,7 @@ pip install git+https://github.com/masaponto/python-mlp
 
 ## Usage
 ```python
+from mlp import MLP
 from sklearn.datasets import fetch_mldata
 from sklearn.preprocessing import normalize
 from sklearn.model_selection import train_test_split
