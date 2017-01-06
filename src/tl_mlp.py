@@ -62,7 +62,7 @@ class TLMLP(BaseEstimator, ClassifierMixin):
 
         np.random.seed()
         self.wh = np.random.uniform(-1., 1., (self.hid_num, X.shape[1]))
-        self.wo = np.random.uniform(-1., 1., (self.out_num, self.hid_num))
+        self.wo = np.random.uniform(-1., 1., (self.out_num, self.hid_num + 1))
 
         for n in range(self.epochs):
             X, y = shuffle(X, y, random_state=np.random.RandomState())
@@ -70,11 +70,16 @@ class TLMLP(BaseEstimator, ClassifierMixin):
 
                 # forward phase
                 zh = self.__calc_out(self.wh, _x)
+                zh = np.insert(zh, zh.shape, 1)
+
                 zo = self.__calc_out(self.wo, zh)
 
                 # backward phase
                 eo = self.__out_error(zo, _y)
                 eh = self.__hid_error(zh, eo)
+
+                eh = np.delete(eh, eh.shape[0] - 1)
+
                 # weight update
                 self.wo = self.__w_update(self.wo, eo, zh)
                 self.wh = self.__w_update(self.wh, eh, _x)
@@ -87,7 +92,9 @@ class TLMLP(BaseEstimator, ClassifierMixin):
         x_vs [[float]] array
         """
         X = self.__add_bias(X)
-        y = self.__calc_out(self.wo, self.__calc_out(self.wh, X.T))
+        z = self.__calc_out(self.wh, X.T)
+        z = np.insert(z, z.shape[0], 1, axis=0)
+        y = self.__calc_out(self.wo, z)
 
         if self.out_num == 1:
             y = y.T
