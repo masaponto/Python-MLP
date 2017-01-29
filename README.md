@@ -36,3 +36,7 @@ print("Accuracy %0.3f " % mlp.score(X_test, y_test))
 
 ## Reference
 [機械学習プロフェッショナルシリーズ 深層学習](http://www.kspub.co.jp/book/detail/1529021.html)
+
+
+## License
+MIT
